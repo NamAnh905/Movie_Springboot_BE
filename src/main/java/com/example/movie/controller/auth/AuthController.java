@@ -1,6 +1,9 @@
 package com.example.movie.controller.auth;
 
+import com.example.movie.dto.RegisterRequest;
 import com.example.movie.security.JwtService;
+import com.example.movie.service.user.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,6 +22,7 @@ import java.util.Map;
 public class AuthController {
     private final AuthenticationManager authManager;
     private final JwtService jwtService;
+    private final UserService userService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
@@ -28,6 +32,16 @@ public class AuthController {
         UserDetails user = (UserDetails) auth.getPrincipal();
         String token = jwtService.generateToken(user);
         return ResponseEntity.ok(new LoginResponse(token));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest dto) {
+        var u = userService.register(dto);
+        return ResponseEntity.ok(Map.of(
+                "id", u.getId(),
+                "username", u.getUsername(),
+                "email", u.getEmail()
+        ));
     }
 
     @GetMapping("/me")

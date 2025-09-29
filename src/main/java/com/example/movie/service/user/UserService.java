@@ -3,7 +3,9 @@ package com.example.movie.service.user;
 import com.example.movie.domain.user.User;
 import com.example.movie.domain.user.UserRepository;
 import com.example.movie.dto.AuthRequest;
+import com.example.movie.dto.RegisterRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +20,7 @@ public class UserService {
 
     /** Đăng ký nhanh từ username/password */
     public User create(AuthRequest req) {
-        if (userRepository.existsByUsername(req.getUsername())) {
+        if (userRepository.existsByUsernameIgnoreCase(req.getUsername())) {
             throw new IllegalArgumentException("Username đã tồn tại");
         }
         User u = User.builder()
@@ -29,14 +31,31 @@ public class UserService {
         return userRepository.save(u);
     }
 
-    public void register(String username, String rawPassword) {
-        if (userRepository.existsByUsername(username)) {
+    public User register(RegisterRequest dto) {
+        if (userRepository.existsByUsernameIgnoreCase(dto.username())) {
             throw new IllegalArgumentException("Username đã tồn tại");
         }
+        if (userRepository.existsByEmailIgnoreCase(dto.email())) {
+            throw new IllegalArgumentException("Email đã tồn tại");
+        }
+
+        String hash = passwordEncoder.encode(dto.password());
+
         User u = new User();
-        u.setUsername(username);
-        u.setPassword(passwordEncoder.encode(rawPassword));
-        userRepository.save(u);
+        u.setUsername(dto.username());
+        u.setPassword(hash);          // dùng chung hash
+        u.setPasswordHash(hash);      // DB bắt buộc NOT NULL
+        u.setEmail(dto.email());
+        u.setFullName(dto.fullName());
+        u.setRole("USER");
+        u.setStatus("ACTIVE");
+        u.setEnabled(true);
+        try {
+            return userRepository.save(u);
+        } catch (DataIntegrityViolationException e) {
+            // Phòng trường hợp race condition: DB vẫn là “chốt chặn” cuối cùng
+            throw e;
+        }
     }
 
     public Optional<User> findByUsername(String username) {

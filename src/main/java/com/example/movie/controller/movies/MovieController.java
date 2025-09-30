@@ -32,10 +32,21 @@ public class MovieController {
     public PageResponse<MovieDTO> list(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) Long genreId,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         var p = service.list(q, genreId, PageRequest.of(page, size));
+        return PageResponse.of(p);
+    }
+
+    @GetMapping("/all")
+    public PageResponse<MovieDTO> listAllAlias(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var p = service.list(null, null, status, PageRequest.of(page, size));
         return PageResponse.of(p);
     }
 

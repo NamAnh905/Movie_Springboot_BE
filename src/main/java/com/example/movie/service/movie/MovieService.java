@@ -33,16 +33,19 @@ public class MovieService {
     }
 
     // ===================== Danh sách + lọc theo thể loại =====================
+    @Transactional(readOnly = true)
     public Page<MovieDTO> list(String q, Long genreId, Pageable pageable) {
-        Page<Movie> page = (genreId != null || (q != null && !q.isBlank()))
-                ? movieRepository.searchByGenreAndTitle(
-                genreId,
-                (q == null || q.isBlank()) ? null : q,
-                pageable
-        )
-                : movieRepository.findAll(pageable);
+        return list(q, genreId, null, pageable); // chuyển về method mới
+    }
 
-        return page.map(this::toDTOEnriched);
+    // MỚI: list có status
+    @Transactional(readOnly = true)
+    public Page<MovieDTO> list(String q, Long genreId, String status, Pageable pageable) {
+        String qNorm = (q == null || q.isBlank()) ? null : q;
+        String st    = (status == null || status.isBlank()) ? null : status;
+
+        Page<Movie> page = movieRepository.search(st, genreId, qNorm, pageable);
+        return page.map(this::toDTOEnriched); // dùng mapper có sẵn trong file của bạn
     }
     // ========================================================================
 

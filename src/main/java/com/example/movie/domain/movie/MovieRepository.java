@@ -7,7 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface MovieRepository extends JpaRepository<Movie, Long> {
 
-    // Lọc theo genreId (join movie_genres) + q theo title (nullable)
+    // Đang có: lọc theo genre + q (giữ lại để tương thích)
     @Query(value = """
         SELECT m.* FROM movies m
         JOIN movie_genres mg ON m.id = mg.movie_id
@@ -25,4 +25,24 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     Page<Movie> searchByGenreAndTitle(@Param("genreId") Long genreId,
                                       @Param("q") String q,
                                       Pageable pageable);
+
+    // MỚI: lọc theo status (+ optional genre, q)
+    @Query(value = """
+        SELECT m.* FROM movies m
+        LEFT JOIN movie_genres mg ON m.id = mg.movie_id
+        WHERE (:genreId IS NULL OR mg.genre_id = :genreId)
+          AND (:q IS NULL OR LOWER(m.title) LIKE LOWER(CONCAT('%', :q, '%')))
+        GROUP BY m.id
+        """,
+                countQuery = """
+        SELECT COUNT(DISTINCT m.id) FROM movies m
+        LEFT JOIN movie_genres mg ON m.id = mg.movie_id
+        WHERE (:genreId IS NULL OR mg.genre_id = :genreId)
+          AND (:q IS NULL OR LOWER(m.title) LIKE LOWER(CONCAT('%', :q, '%')))
+        """,
+                nativeQuery = true)
+    Page<Movie> search(@Param("status") String status,
+                       @Param("genreId") Long genreId,
+                       @Param("q") String q,
+                       Pageable pageable);
 }
